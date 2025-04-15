@@ -3,6 +3,23 @@ export interface JmsSection<N> {
   paths: string[],
 }
 
+type SizeUnit = 'B' | 'K' | 'M' | 'G' | 'T';
+export interface JmsSettings {
+  postMaxSize: `${number}${SizeUnit}`
+  publicUrl: string,
+  supportedFeatures: string[],
+  uploadMaxSize: `${number}${SizeUnit}`
+  version: `${number}.${number}.${number}`
+}
+
+export const defaultSettings: JmsSettings = {
+  postMaxSize: '2M',
+  publicUrl: window.location.origin,
+  supportedFeatures: [],
+  uploadMaxSize: '2M',
+  version: '1.0.0',
+}
+
 export function useJsonMs() {
 
   const state = {
@@ -68,6 +85,7 @@ export function useJsonMs() {
           case 'data':
             const data = JSON.parse(event.data.data);
             proxy.data = data.data;
+            proxy.settings = data.settings;
             if (options.onDataChange) {
               options.onDataChange(data);
             }
