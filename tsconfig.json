@@ -1,12 +1,11 @@
 {
   "compilerOptions": {
-    "target": "es2021",
+    "target": "ESNext",
     "module": "ESNext",
     "outDir": "./dist",
     "strict": true,
     "esModuleInterop": true,
-    "declaration": true, // Generate .d.ts files
-    "declarationDir": "./dist/types" // Optional: specify where to put .d.ts files
+    "declaration": true,
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules"]
