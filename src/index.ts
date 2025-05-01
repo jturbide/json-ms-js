@@ -1,195 +1,64 @@
-type SizeUnit = 'B' | 'K' | 'M' | 'G' | 'T';
+import { JmsOptions, JmsOptionsWithDefaults, JmsContext, JmsSection, JmsSettings, JmsStructure, JmsFile, defaultSettings, defaultStructure } from "./interfaces";
 
-export interface JmsSection<N> {
-  name: N,
-  paths: string[],
-}
-
-export interface JmsSettings {
-  postMaxSize: `${number}${SizeUnit}`
-  publicUrl: string,
-  supportedFeatures: string[],
-  uploadMaxSize: `${number}${SizeUnit}`
-  version: `${number}.${number}.${number}`
-}
-
-export const defaultSettings: JmsSettings = {
-  postMaxSize: '2M',
-  publicUrl: typeof window !== 'undefined' ? window.location.origin : '',
-  supportedFeatures: [],
-  uploadMaxSize: '2M',
-  version: '1.0.0',
-}
-
-export type TRule = { regex: string, message: string }
-export type TEnum = {[key: string]: string[]} | {[key: string]: {[key: string]: string}}
-export type TSchema = {[key: string]: { [key: string]: IField }}
-
-export interface IField {
-  type: string
-  label: string
-  required?: boolean
-  default?: any
-  icon?: string
-  hint?: string
-  multiple?: boolean
-  inline?: boolean
-  min?: number
-  max?: number
-  length?: number
-  step?: number
-  'half-increments'?: boolean
-  prepend?: string
-  append?: string
-  accept?: string | string[]
-  'append-inner'?: string
-  'prepend-inner'?: string
-  fields: {[key: string]: IField}
-  items?: {[key: string]: string} | string[] | string
-  conditional?: string
-  rules?: TRule[]
-  collapsable?: boolean
-  collapsed?: boolean
-  swatches?: boolean
-  canvas?: boolean
-  inputs?: boolean
-  sliders?: boolean
-}
-
-export interface JmsStructure {
-  global: {
-    title: string,
-    icon?: string,
-    preview?: string,
-  },
-  locales: { [key: string]: string },
-  enums: { [key: string]: { [key: string]: string } },
-  schemas: { [key: string]: IField },
-  sections: { [key: string]: IField },
-}
-
-export const defaultStructure: JmsStructure = {
-  global: {
-    title: 'Untitled',
-  },
-  locales: {},
-  enums: {},
-  schemas: {},
-  sections: {}
-}
+let initialized = false;
 
 export function useJsonMs() {
+  const bindToEditor = <D, S = string, L = string>(options: JmsOptions<D, S, L> = {}) => {
+    if (!initialized && typeof window !== 'undefined' && window.self !== window.top) {
+      initialized = true;
+      options.targetOrigin = options.targetOrigin ?? '*';
 
-  const state = {
-    data: {},
-    locale: null,
-    settings: {},
-    structure: {},
-  };
-
-  const handler = {
-    get(target: any, prop: string) {
-      return target[prop];
-    },
-    set(target: any, prop: string, value: any) {
-      target[prop] = value;
-      return true;
-    }
-  }
-
-  const proxy = new Proxy(state, handler);
-
-  const getValueByPath = (obj: any, path: string): any => {
-    const keys = path.split('.');
-    let current = obj;
-    for (const key of keys) {
-      if (current && key in current) {
-        current = current[key];
-      } else {
-        return undefined;
-      }
-    }
-    return current;
-  };
-
-  const applyParams = (str: string, params?: { [key: string]: string | number }) => {
-    if (!params) {
-      return str;
-    }
-    const keys = Object.keys(params);
-    keys.forEach(key => {
-      str = str.replaceAll('{' + key + '}', params[key].toString());
-    });
-    return str;
-  };
-
-  const jms = (path: string, params?: { [key: string]: string | number }) => {
-    return applyParams(getValueByPath(proxy.data, path), params);
-  }
-
-  const bindToEditor = <S = string, L = string>(options: {
-    targetOrigin?: string,
-    onDataChange?: (data: any) => void,
-    onLocaleInit?: (locale: L) => void,
-    onLocaleChange?: (locale: L) => void,
-    onSectionInit?: (section: JmsSection<S>) => void,
-    onSectionChange?: (section: JmsSection<S>) => void,
-    onSettingsInit?: (settings: JmsSettings) => void,
-    onSettingsChange?: (settings: JmsSettings) => void,
-    onStructureInit?: (structure: JmsStructure) => void,
-    onStructureChange?: (structure: JmsStructure) => void,
-  } = {}) => {
-
-    options.targetOrigin = options.targetOrigin ?? '*';
-
-    if (typeof window !== 'undefined') {
       window.parent.postMessage({name: 'jsonms', type: 'init'}, options.targetOrigin);
-
-      window.addEventListener('message', (event) => {
+      window.addEventListener('message', event => {
         if (event.data.name === 'jsonms') {
           switch (event.data.type) {
+            case 'init':
+              const init = JSON.parse(event.data.data);
+              if (options.onSectionInit instanceof Function) {
+                options.onSectionInit(init.section);
+              }
+              if (options.onLocaleInit instanceof Function) {
+                options.onLocaleInit(init.locale);
+              }
+              if (options.onSettingsInit instanceof Function) {
+                options.onSettingsInit(init.settings);
+              }
+              if (options.onStructureInit instanceof Function) {
+                options.onStructureInit(init.structure);
+              }
+              break;
             case 'data':
-              const data = JSON.parse(event.data.data);
-              proxy.data = data.data;
-              proxy.settings = data.settings;
-              if (options.onDataChange) {
+              if (options.onDataChange instanceof Function) {
+                const data = JSON.parse(event.data.data);
                 options.onDataChange(data);
-              }
-              if (options.onSectionInit) {
-                options.onSectionInit(data.section);
-              }
-              if (options.onLocaleInit) {
-                options.onLocaleInit(data.locale);
-              }
-              if (options.onSettingsInit) {
-                options.onSettingsInit(data.settings);
-              }
-              if (options.onStructureInit) {
-                options.onStructureInit(data.structure);
               }
               break;
             case 'section':
-              if (options.onSectionChange) {
+              if (options.onSectionChange instanceof Function) {
                 try {
-                  options.onSectionChange(JSON.parse(event.data.data));
+                  const section = JSON.parse(event.data.data);
+                  options.onSectionChange(section);
                 } catch (e) {
                   console.error(e);
                 }
               }
               break;
             case 'locale':
-              if (options.onLocaleChange) {
-                options.onLocaleChange(event.data.data);
+              if (options.onLocaleChange instanceof Function) {
+                const locale = event.data.data;
+                options.onLocaleChange(locale);
               }
               break;
             case 'settings':
-              if (options.onSettingsChange) {
-                options.onSettingsChange(event.data.data);
+              const settings = JSON.parse(event.data.data);
+              if (options.onSettingsChange instanceof Function) {
+                options.onSettingsChange(settings);
               }
               break;
             case 'structure':
-              if (options.onStructureChange) {
-                options.onStructureChange(event.data.data);
+              if (options.onStructureChange instanceof Function) {
+                const structure = JSON.parse(event.data.data);
+                options.onStructureChange(structure);
               }
               break;
             case 'reload':
@@ -202,8 +71,47 @@ export function useJsonMs() {
   }
 
   return {
-    jms,
     bindToEditor,
-    applyParams,
   }
+}
+
+export const getFilePath = (file: JmsFile | null = { path: null, meta: {} }, settings: JmsSettings = defaultSettings): string => {
+  if (file === null) {
+    return settings.publicUrl;
+  }
+  if (typeof file.path === 'string' && (file.path.startsWith('http://') || file.path.startsWith('https://'))) {
+    return file.path;
+  }
+  return settings.publicUrl + file.path;
+}
+
+export async function fetchContext<D, S, L>(publicUrl: string, hash: string, secretApiKey: string): Promise<JmsContext<D, S, L>> {
+  return await fetch(`${publicUrl}/data/${hash}`, {
+    cache: 'no-store',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Jms-Api-Key': secretApiKey,
+    },
+  }).then(response => response.json())
+}
+
+export function getFallbackLocale(defaultLocale: string = 'en-US', lengthLimit = 255): string {
+  if (navigator.languages && navigator.languages.length > 0) {
+    return navigator.languages[0].substring(0, lengthLimit);
+  } else if (navigator.language) {
+    return navigator.language.substring(0, lengthLimit);
+  }
+  return defaultLocale;
+}
+
+export {
+  JmsSection,
+  JmsSettings,
+  JmsStructure,
+  JmsOptions,
+  JmsOptionsWithDefaults,
+  JmsContext,
+  JmsFile,
+  defaultSettings,
+  defaultStructure,
 }
