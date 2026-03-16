@@ -1,4 +1,14 @@
-import { JmsOptions, JmsOptionsWithDefaults, JmsContext, JmsSection, JmsSettings, JmsStructure, JmsFile, defaultSettings, defaultStructure } from "./interfaces";
+import {
+  defaultSettings,
+  defaultStructure,
+  type JmsContext,
+  type JmsFile,
+  type JmsOptions,
+  type JmsOptionsWithDefaults,
+  type JmsSection,
+  type JmsSettings,
+  type JmsStructure,
+} from "./interfaces.js";
 
 let initialized = false;
 
@@ -105,13 +115,16 @@ export function getFallbackLocale(defaultLocale: string = 'en-US', lengthLimit =
 }
 
 export {
+  defaultSettings,
+  defaultStructure,
+}
+
+export type {
+  JmsContext,
+  JmsFile,
+  JmsOptions,
+  JmsOptionsWithDefaults,
   JmsSection,
   JmsSettings,
   JmsStructure,
-  JmsOptions,
-  JmsOptionsWithDefaults,
-  JmsContext,
-  JmsFile,
-  defaultSettings,
-  defaultStructure,
 }
